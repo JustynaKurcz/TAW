@@ -1,13 +1,15 @@
 import Controller from '../interfaces/controller.interface';
-import {Request, Response, NextFunction, Router} from 'express';
+import {NextFunction, Request, Response, Router} from 'express';
+import {checkPostCount} from "../middlewares/checkPostCount.middleware";
+import DataService from "../modules/services/data.service";
 
-let testArr = [4,5,6,3,5,3,7,5,13,5,6,4,3,6,3,6];
 
-class PostController implements Controller{
+class PostController implements Controller {
     public path = '/api/post';
     public router = Router();
+    public dataService = new DataService();
 
-    constructor(){
+    constructor() {
         this.initializeRoutes();
     }
 
@@ -16,48 +18,62 @@ class PostController implements Controller{
         this.router.get(`${this.path}s`, this.getAll);
         this.router.get(`${this.path}/:id`, this.getPost);
         this.router.delete(`${this.path}/:id`, this.deletePost);
-        this.router.post(`${this.path}/:num`, this.getNthPost);
+     //   this.router.post(`${this.path}/:num`, checkPostCount, this.getNthPost);
         this.router.delete(`${this.path}s`, this.deleteAll);
     }
 
-    private addPost(request: Request, response: Response) {
-        testArr.push(request.body);
-        response.status(201).send(`Added ${request.body}`);
+    private addPost = async (request: Request, response: Response, next: NextFunction) => {
+        const {title, text, image} = request.body;
+        const readingData = {title, text, image};
+
+        try {
+            await this.dataService.createData(readingData);
+            response.status(201).json(readingData);
+        } catch (error) {
+            console.log('eeee', error)
+            console.error(`Validation Error: ${error.message}`);
+            response.status(400).json({error: 'Invalid input data.'});
+        }
     }
 
-    private getAll = async (response: Response) => {
-        response.status(200).json(testArr);
-    };
-
-    private getPost(request: Request, response: Response) {
-        const id = Number(request.params.id);
-        if (!Number.isInteger(id) || id >= testArr.length || id < 0) {
-            response.status(400).json({ exception: 'Invalid ID' });
-            return;
-        }
-        response.status(200).json(testArr[id]);
-    }
-
-    private deletePost(request: Request, response: Response) {
-        const id = Number(request.params.id);
-        if (!Number.isInteger(id) || id >= testArr.length || id < 0) {
-            response.status(400).json({ exception: 'Invalid ID' });
-            return;
-        }
-        testArr.splice(id, 1);
+    private deleteAll = async (request: Request, response: Response) => {
+        await this.dataService.deleteData({});
         response.status(204).send();
     }
 
-    private getNthPost(request: Request, response: Response) {
-        const num = parseInt(request.params.num);
-        const posts = testArr.slice(0, num);
-        response.status(200).json(posts);
+    private getAll = async (request: Request, response: Response, next: NextFunction) => {
+        try {
+            const allData = await this.dataService.query({});
+
+            response.status(200).json(allData);
+        } catch (error) {
+            console.error(`Validation Error: ${error.message}`);
+            response.status(500).json({error: 'Internal Server Error'});
+        }
     }
 
-    private deleteAll(request: Request, response: Response) {
-        testArr = [];
-        response.status(204).json(testArr);
+    private getPost = async (request: Request, response: Response, next: NextFunction) => {
+        try {
+            const {id} = request.params;
+
+            const allData = await this.dataService.getById({_id: id});
+            response.status(200).json(allData);
+        } catch (error) {
+            console.log(`Not found: ${error.message}`);
+            response.status(404).json({error: 'Not found'});
+        }
     }
+
+    private deletePost = async (request: Request, response: Response, next: NextFunction) => {
+       try {
+           const {id} = request.params;
+           await this.dataService.deleteSingleData({_id: id});
+           response.sendStatus(204);
+       } catch (error) {
+              console.error(`Not found: ${error.message}`);
+              response.status(404).json({error: 'Not found'});
+       }
+    };
 }
 
 export default PostController;
