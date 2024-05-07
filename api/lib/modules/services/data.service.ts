@@ -2,45 +2,43 @@ import {IData, Query} from '../models/data.model';
 import model from '../schemas/data.schema';
 
 class DataService {
+
     public async createData(postParams: IData) {
         try {
-            const dataModel = new model(postParams);
-            await dataModel.save();
+            const data = new model(postParams);
+            return await data.save();
         } catch (error) {
-            console.error('Wystąpił błąd podczas tworzenia danych:', error);
-            throw new Error('Wystąpił błąd podczas tworzenia danych');
+            throw new Error('Failed to create data');
         }
     }
 
-    public async query(query: Query<number | string | boolean>) {
+    public async browseData(query: Query<number | string | boolean>) {
         try {
-            return await model.find(query);
+            return await model.find(query, {__v: 0});
         } catch (error) {
-            throw new Error('Query failed: ${error}');
+            throw new Error('Failed to browse data');
         }
     }
 
-    public async deleteData(query: Query<number | string | boolean>) {
+    public async removeAllData(query: Query<number | string | boolean>) {
         try {
             await model.deleteMany(query);
         } catch (error) {
-            console.error('Wystąpił błąd podczas usuwania danych:', error);
-            throw new Error('Wystąpił błąd podczas usuwania danych');
+            throw new Error('Failed to remove all data');
         }
     }
 
-    public async deleteSingleData(query: Query<number | string | boolean>) {
+    public async removeDataById(query: Query<number | string | boolean>) {
         try {
             await model.findOneAndDelete(query);
         } catch (error) {
-            console.error('Wystąpił błąd podczas usuwania pojedynczego elementu:', error);
-            throw new Error('Wystąpił błąd podczas usuwania pojedynczego elementu');
+            throw new Error('Failed to remove data by id');
         }
     }
 
     public async getById(query: Query<number | string | boolean>) {
         try {
-            return await model.findOne(query, {__v: 0, _id: 0});
+            return await model.findById(query, {__v: 0});
         } catch (error) {
             throw new Error('Query failed: ${error}');
         }
