@@ -6,7 +6,6 @@ import TokenService from "../modules/services/token.service";
 import EmailService from "../modules/services/email.service";
 import {auth} from "../middlewares/auth.middleware";
 import generator from "generate-password";
-import emailService from "../modules/services/email.service";
 
 class UserController implements Controller {
     public path = '/api/user';
@@ -89,22 +88,16 @@ class UserController implements Controller {
             if (!user) {
                 return response.status(401).json({error: 'Unauthorized'});
             }
-            console.log(`User: ${user.email}`);
 
             const newPassword = generator.generate({length: 10, numbers: true});
-            console.log(`New password: ${newPassword}`);
             const hashedPassword = await this.passwordService.hashPassword(newPassword);
-            console.log(`Hashed password: ${hashedPassword}`);
             await this.passwordService.createOrUpdate({userId: user.id, password: hashedPassword});
-            console.log(`New password: ${newPassword}`);
-            // todo: send email with new password
             await this.emailService.sendEmail(
                 {
                     recipient: user.email,
                     subject: 'Twoje nowe hasło!',
                     message: newPassword
                })
-            console.log('Email sent');
             return response.status(200).json({message: 'New password has been sent to your email'});
         } catch (error) {
             console.error(`Validation Error: ${error.message}`);
